@@ -37,6 +37,7 @@ for j, row in enumerate(text_map):
 def mapping(a, b):
     return (a // tile) * tile, (b // tile) * tile
 
+
 def ray_casting(player, texture):
     walls = []
     ox, oy = player.pos
@@ -77,6 +78,7 @@ def ray_casting(player, texture):
         walls.append((depth, wall_column, wall_pos))
         cur_angle += delta_angle
     return walls
+
 
 class Driwing:
     def __init__(self, screen, screen_map):
@@ -123,6 +125,7 @@ class Player:
 
         self.angle %= math.pi * 2
 
+
 class World_Object:
     def __init__(self, object, static, pos, shift, scale):
         self.object = object
@@ -140,7 +143,7 @@ class World_Object:
             gamma += math.pi * 2
 
         delta_rays = int(gamma / delta_angle)
-        current_ray = num_rays // 2 - 1  + delta_rays
+        current_ray = num_rays // 2 - 1 + delta_rays
         distance *= math.cos(half_fov - current_ray * delta_angle)
 
         if 0 <= current_ray <= num_rays - 1 and distance < walls[current_ray][0]:
@@ -153,7 +156,6 @@ class World_Object:
             return (False,)
 
 
-
 class Sprites:
     def __init__(self):
         self.types = {
@@ -163,13 +165,13 @@ class Sprites:
             World_Object(self.types['stas'], True, (7.1, 3.1), -0.5, 0.1)
         ]
 
+
 pygame.init()
 screen = pygame.display.set_mode(size)
 sprites = Sprites()
 clock = pygame.time.Clock()
 player = Player()
 driwing = Driwing(screen, world_map)
-background = pygame.image.load('textures/sky.jpg')
 while True:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -181,7 +183,6 @@ while True:
     pygame.draw.rect(screen, (0, 0, 0), (0, half_height, width, half_height))
     walls = ray_casting(player, driwing.texture)
     driwing.world(walls + [obj.locate(player, walls) for obj in sprites.objects])
-
 
     pygame.display.flip()
     clock.tick(fps)
