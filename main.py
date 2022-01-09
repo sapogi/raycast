@@ -1,5 +1,6 @@
 import pygame
 import math
+from collections import deque
 
 size = width, height = 1200, 800
 half_width = width // 2
@@ -89,23 +90,32 @@ class Driwing:
     def world(self, world_objects):
         for obj in sorted(world_objects, key=lambda n: n[0], reverse=True):
             if obj[0]:
-                _, objectt, object_pos = obj
-                self.screen.blit(objectt, object_pos)
+                _, temp_object, object_pos = obj
+                self.screen.blit(temp_object, object_pos)
 
 
 class Player:
     def __init__(self):
         self.x, self.y = player_pos
         self.angle = player_angle
+        self.sensitivity = 0.004
 
     @property
     def pos(self):
         return (self.x, self.y)
 
     def movement(self):
+        self.keys_control()
+        self.mouse_control()
+        self.angle %= math.pi * 2
+
+    def keys_control(self):
         sin_a = math.sin(self.angle)
         cos_a = math.cos(self.angle)
         keys = pygame.key.get_pressed()
+        if keys[pygame.K_ESCAPE]:
+            exit()
+
         if keys[pygame.K_w]:
             self.x += player_speed * cos_a
             self.y += player_speed * sin_a
@@ -123,16 +133,27 @@ class Player:
         if keys[pygame.K_RIGHT]:
             self.angle += 0.02
 
-        self.angle %= math.pi * 2
+    def mouse_control(self):
+        if pygame.mouse.get_focused():
+            difference = pygame.mouse.get_pos()[0] - half_width
+            pygame.mouse.set_pos((half_width, half_height))
+            self.angle += difference * self.sensitivity
 
 
 class World_Object:
-    def __init__(self, object, static, pos, shift, scale):
-        self.object = object
-        self.static = static
+    def __init__(self, parameters, pos):
+        self.object = parameters['sprite']
+        self.viewing_angles = parameters['viewing_angles']
+        self.shift = parameters['shift']
+        self.scale = parameters['scale']
+        self.animation = parameters['animation'].copy()
+        self.animation_dist = parameters['animation_dist']
+        self.animation_speed = parameters['animation_speed']
+        self.animation_count = 0
         self.pos = self.x, self.y = pos[0] * tile, pos[1] * tile
-        self.shift = shift
-        self.scale = scale
+        if self.viewing_angles:
+            self.sprite_angles = [frozenset(range(i, i + 45)) for i in range(0, 360, 45)]
+            self.sprite_positions = {angle: pos for angle, pos in zip(self.sprite_angles, self.object)}
 
     def locate(self, player, walls):
         dx, dy = self.x - player.x, self.y - player.y
@@ -146,11 +167,20 @@ class World_Object:
         current_ray = num_rays // 2 - 1 + delta_rays
         distance *= math.cos(half_fov - current_ray * delta_angle)
 
+
         if 0 <= current_ray <= num_rays - 1 and distance < walls[current_ray][0]:
             proj_height = int(proj_coeff / distance * scale)
             shift = (proj_height // 2) * self.shift
+            sprite_object = self.object
+            if self.animation and distance < self.animation_dist:
+                sprite_object = self.animation[0]
+                if self.animation_count < self.animation_speed:
+                    self.animation_count += 1
+                else:
+                    self.animation.rotate()
+                    self.animation_count = 0
             sprite_pos = (current_ray * scale - proj_height // 2, half_height - proj_height // 2 + shift)
-            sprite = pygame.transform.scale(self.object, (proj_height, proj_height))
+            sprite = pygame.transform.scale(sprite_object, (proj_height, proj_height))
             return (distance, sprite, sprite_pos)
         else:
             return (False,)
@@ -158,11 +188,19 @@ class World_Object:
 
 class Sprites:
     def __init__(self):
-        self.types = {
-            'stas': pygame.image.load('sprites/pes.png').convert_alpha()
-        }
+        self.sprite_parameters = {
+            'mob': {
+                'sprite': pygame.image.load('sprites/mob/base/0.png').convert_alpha(),
+                'viewing_angles': None,
+                'shift': -0.7,
+                'scale': 0.4,
+                'animation': deque(
+                    [pygame.image.load(f'sprites/mob/death/{i}.png').convert_alpha() for i in range(4)]),
+                'animation_dist': 800,
+                'animation_speed': 10,
+            }}
         self.objects = [
-            World_Object(self.types['stas'], True, (7.1, 3.1), -0.5, 0.1)
+            World_Object(self.sprite_parameters['mob'], (7.1, 3.1))
         ]
 
 
@@ -172,6 +210,7 @@ sprites = Sprites()
 clock = pygame.time.Clock()
 player = Player()
 driwing = Driwing(screen, world_map)
+pygame.mouse.set_visible(False)
 while True:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
