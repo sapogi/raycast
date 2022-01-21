@@ -240,9 +240,19 @@ class Sprites:
             World_Object(self.sprite_parameters['mob'], (10.5, 30.5))
         ]
 
+def end_game(screen):
+    screen.fill((0, 0, 0))
+    font = pygame.font.Font(None, 50)
+    text = font.render("Hello, Pygame!", True, (100, 255, 100))
+    text_x = width // 2 - text.get_width() // 2
+    text_y = height // 2 - text.get_height() // 2
+    text_w = text.get_width()
+    text_h = text.get_height()
+    screen.blit(text, (text_x, text_y))
+    pygame.draw.rect(screen, (0, 255, 0), (text_x - 10, text_y - 10,
+                                           text_w + 20, text_h + 20), 1)
+
 def start_game():
-
-
     sprites = Sprites()
     clock = pygame.time.Clock()
     player = Player()
@@ -252,9 +262,10 @@ def start_game():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 exit()
+
         player.movement()
         if 1000 < player.x < 1100 and 2700 < player.y < 2800:
-            exit()
+            break
         screen.fill((0, 0, 0))
 
         pygame.draw.rect(screen, (192, 192, 192), (0, 0, width, half_height))
@@ -264,6 +275,8 @@ def start_game():
 
         pygame.display.flip()
         clock.tick(fps)
+
+
 pygame.init()
 screen = pygame.display.set_mode(size)
 menu = pygame_menu.Menu('start menu', 400, 300, theme=pygame_menu.themes.THEME_GREEN)
