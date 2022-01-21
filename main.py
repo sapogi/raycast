@@ -3,6 +3,7 @@ import math
 import pygame_menu
 from collections import deque
 
+# Глобальные переменные константы
 size = width, height = 1200, 800
 half_width = width // 2
 half_height = height // 2
@@ -29,6 +30,7 @@ texture_scale = texture_width // tile
 with open('map.txt', 'r', encoding='utf-8') as map:
     text_map = map.readlines()
 
+# Помещение карты в множество и создание карты коллизий
 world_map = set()
 collision_walls = []
 for j, row in enumerate(text_map):
@@ -42,7 +44,9 @@ def mapping(a, b):
     return (a // tile) * tile, (b // tile) * tile
 
 
-def ray_casting(player, texture):
+def ray_casting(player,
+                texture):  # Функция которая возращает список со стенами в нужном формате для их отображения относительно текущей позиции
+    # и напровления игрока
     walls = []
     ox, oy = player.pos
     xm, ym = mapping(ox, oy)
@@ -84,7 +88,7 @@ def ray_casting(player, texture):
     return walls
 
 
-class Driwing:
+class Driwing:  # функция для отрисовки всех объектов на крате
     def __init__(self, screen, screen_map):
         self.screen = screen
         self.screen_map = screen_map
@@ -97,7 +101,7 @@ class Driwing:
                 self.screen.blit(temp_object, object_pos)
 
 
-class Player:
+class Player:  # Класс игрока
     def __init__(self):
         self.x, self.y = player_pos
         self.angle = player_angle
@@ -109,7 +113,8 @@ class Player:
     def pos(self):
         return (self.x, self.y)
 
-    def detect_collision(self, dx, dy):
+    #
+    def detect_collision(self, dx, dy):  # Метод для обнаружения столкновения игрока со стенами
         next_rect = self.rect.copy()
         next_rect.move_ip(dx, dy)
         hit_indexes = next_rect.collidelistall(collision_walls)
@@ -135,14 +140,13 @@ class Player:
         self.x += dx
         self.y += dy
 
-
-    def movement(self):
+    def movement(self):  # Метод для общего перемещения игрока
         self.keys_control()
         self.mouse_control()
         self.rect.center = self.x, self.y
         self.angle %= math.pi * 2
 
-    def keys_control(self):
+    def keys_control(self):  # метод для движения
         sin_a = math.sin(self.angle)
         cos_a = math.cos(self.angle)
         keys = pygame.key.get_pressed()
@@ -154,7 +158,7 @@ class Player:
             dy = player_speed * sin_a
             self.detect_collision(dx, dy)
         if keys[pygame.K_s]:
-            dx =  -player_speed * cos_a
+            dx = -player_speed * cos_a
             dy = -player_speed * sin_a
             self.detect_collision(dx, dy)
         if keys[pygame.K_a]:
@@ -170,14 +174,14 @@ class Player:
         if keys[pygame.K_RIGHT]:
             self.angle += 0.02
 
-    def mouse_control(self):
+    def mouse_control(self):  # Метод для поворота мыши
         if pygame.mouse.get_focused():
             difference = pygame.mouse.get_pos()[0] - half_width
             pygame.mouse.set_pos((half_width, half_height))
             self.angle += difference * self.sensitivity
 
 
-class World_Object:
+class World_Object:  # Класс для объектов внутри игры отображаемых ввиде спрайтов
     def __init__(self, parameters, pos):
         self.object = parameters['sprite']
         self.viewing_angles = parameters['viewing_angles']
@@ -192,7 +196,7 @@ class World_Object:
             self.sprite_angles = [frozenset(range(i, i + 45)) for i in range(0, 360, 45)]
             self.sprite_positions = {angle: pos for angle, pos in zip(self.sprite_angles, self.object)}
 
-    def locate(self, player, walls):
+    def locate(self, player, walls):  # метод для обнаружения этих объектов на карте
         dx, dy = self.x - player.x, self.y - player.y
         distance = math.sqrt(dx ** 2 + dy ** 2)
         theta = math.atan2(dy, dx)
@@ -203,7 +207,6 @@ class World_Object:
         delta_rays = int(gamma / delta_angle)
         current_ray = num_rays // 2 - 1 + delta_rays
         distance *= math.cos(half_fov - current_ray * delta_angle)
-
 
         if 0 <= current_ray <= num_rays - 1 and distance < walls[current_ray][0]:
             proj_height = int(proj_coeff / distance * scale)
@@ -223,7 +226,7 @@ class World_Object:
             return (False,)
 
 
-class Sprites:
+class Sprites:  # Класс для хранения всех объектов World_Object
     def __init__(self):
         self.sprite_parameters = {
             'mob': {
@@ -240,19 +243,8 @@ class Sprites:
             World_Object(self.sprite_parameters['mob'], (10.5, 30.5))
         ]
 
-def end_game(screen):
-    screen.fill((0, 0, 0))
-    font = pygame.font.Font(None, 50)
-    text = font.render("Hello, Pygame!", True, (100, 255, 100))
-    text_x = width // 2 - text.get_width() // 2
-    text_y = height // 2 - text.get_height() // 2
-    text_w = text.get_width()
-    text_h = text.get_height()
-    screen.blit(text, (text_x, text_y))
-    pygame.draw.rect(screen, (0, 255, 0), (text_x - 10, text_y - 10,
-                                           text_w + 20, text_h + 20), 1)
 
-def start_game():
+def start_game():  # Функция с главным игровым циклом
     sprites = Sprites()
     clock = pygame.time.Clock()
     player = Player()
@@ -277,6 +269,7 @@ def start_game():
         clock.tick(fps)
 
 
+# создание начального меню
 pygame.init()
 screen = pygame.display.set_mode(size)
 menu = pygame_menu.Menu('start menu', 400, 300, theme=pygame_menu.themes.THEME_GREEN)
